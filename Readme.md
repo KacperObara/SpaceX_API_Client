@@ -25,7 +25,7 @@ The project starts with a loading state. When loading is successful, it enters t
 The simulator shows real data of Earth’s position around the Sun, with real-world scale for the distance between the star and the planet.
 
 <div align="center">
-  <video src="https://github.com/user-attachments/assets/1e3e0524-6f67-4c3e-8748-b5f9a6d58170"></video>
+  <video src="https://github.com/user-attachments/assets/4196edfb-b852-4378-bce1-b8c81a760b5c"></video>
 </div>
 
 ## Technical Stack
@@ -36,7 +36,7 @@ The simulator shows real data of Earth’s position around the Sun, with real-wo
 - **DOTween** - Smooth animations and transitions
 
 ## Architecture diagram
-![SpaceXDiagram](https://github.com/user-attachments/assets/7a47f869-133a-479e-91fe-98f748bdb005)
+![SpaceXDiagram](https://github.com/user-attachments/assets/2c62e811-5fba-4dea-b0ab-cfb5907534f4)
 
 
 The architecture is based on a Hierarchical State Machine. 
