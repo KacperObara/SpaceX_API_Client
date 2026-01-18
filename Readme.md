@@ -6,6 +6,7 @@ A technical showcase of a scalable Unity architecture featuring a SpaceX REST AP
 - MVP pattern for in-state architecture
 - Pure C# Classes, minimum MonoBehaviours
 - Designed with UniTask in mind
+- VContainer for Dependency Injection (DI)
 - Unit tests and End-to-End tests (E2E)
 
 ## What issues does it solve?
