@@ -21,6 +21,7 @@ namespace Data
         private const string PayloadsUrl = "https://api.spacexdata.com/v4/payloads";
 
         private readonly ILaunchDataService _service;
+        private readonly IDataProvider _provider;
         private readonly CancellationToken _ct;
 
         private List<LaunchData> _launches;
@@ -28,9 +29,13 @@ namespace Data
         private Dictionary<string, PayloadData> _payloads;
         private Dictionary<string, Sprite> _rocketImages;
     
-        public LaunchDataLoader(ILaunchDataService service, CancellationToken ct)
+        public LaunchDataLoader(
+            ILaunchDataService service, 
+            IDataProvider provider, 
+            CancellationToken ct)
         {
             _service = service;
+            _provider = provider;
             _ct = ct;
         }
 
@@ -71,7 +76,7 @@ namespace Data
     
         private async UniTask LoadLaunches()
         {
-            string json = await APIClient.GetRequest(LaunchesUrl, _ct);
+            string json = await _provider.GetRequest(LaunchesUrl, _ct);
             _launches = JsonConvert.DeserializeObject<List<LaunchData>>(json);
 
             // Display newest first
@@ -80,7 +85,7 @@ namespace Data
 
         private async UniTask LoadRockets(List<string> rocketIds)
         {
-            string json = await APIClient.GetRequestsById(RocketsUrl, rocketIds, _ct);
+            string json = await _provider.GetRequestsById(RocketsUrl, rocketIds, _ct);
 
             var parsed = JsonConvert.DeserializeObject<APIClient.QueryResult<RocketData>>(json);
             _rockets = parsed.Docs.ToDictionary(r => r.Id, r => r);
@@ -88,7 +93,7 @@ namespace Data
 
         private async UniTask LoadPayloads(List<string> payloadIds)
         {
-            string json = await APIClient.GetRequestsById(PayloadsUrl, payloadIds, _ct);
+            string json = await _provider.GetRequestsById(PayloadsUrl, payloadIds, _ct);
 
             var parsed = JsonConvert.DeserializeObject<APIClient.QueryResult<PayloadData>>(json);
             _payloads = parsed.Docs.ToDictionary(p => p.Id, p => p);

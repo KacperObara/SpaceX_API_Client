@@ -8,9 +8,15 @@ using UnityEngine.Networking;
 
 namespace Data
 {
-    public class APIClient
+    public interface IDataProvider
     {
-        public static async UniTask<string> GetRequest(string url, CancellationToken ct)
+        UniTask<string> GetRequest(string url, CancellationToken ct);
+        UniTask<string> GetRequestsById(string baseUrl, List<string> ids, CancellationToken ct);
+    }
+    
+    public class APIClient : IDataProvider
+    {
+        public async UniTask<string> GetRequest(string url, CancellationToken ct)
         {
             using (UnityWebRequest req = UnityWebRequest.Get(url))
             {
@@ -26,7 +32,7 @@ namespace Data
     
         // Complicated query, but it's much more efficient to get only required data, 
         // instead of downloading all and filtering or making multiple API requests one by one.
-        public static async UniTask<string> GetRequestsById(string baseUrl, List<string> ids, CancellationToken ct)
+        public async UniTask<string> GetRequestsById(string baseUrl, List<string> ids, CancellationToken ct)
         {
             var body = new Dictionary<string, object>
             {
@@ -46,7 +52,7 @@ namespace Data
             string json = JsonConvert.SerializeObject(body);
             string finalUrl = baseUrl + "/query";
     
-            using var req = new UnityWebRequest(finalUrl, "POST");
+            using UnityWebRequest req = new UnityWebRequest(finalUrl, "POST");
             req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
             req.downloadHandler = new DownloadHandlerBuffer();
             req.SetRequestHeader("Content-Type", "application/json");
