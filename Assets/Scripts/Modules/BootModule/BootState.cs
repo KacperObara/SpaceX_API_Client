@@ -43,6 +43,7 @@ namespace Modules.BootModule
         {
             try
             {
+                _view.SetProgress(0);
                 await _orbital.Load();
                 _view.SetProgress(20);
                 await _launch.Load(p => _view.SetProgress(p));
