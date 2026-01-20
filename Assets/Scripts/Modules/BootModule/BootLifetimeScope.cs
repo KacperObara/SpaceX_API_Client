@@ -22,6 +22,8 @@ namespace Modules.BootModule
         
             builder.Register<IOrbitalDataLoader, OrbitalDataLoader>(Lifetime.Scoped);
             builder.Register<ILaunchDataLoader, LaunchDataLoader>(Lifetime.Scoped);
+            builder.Register<IDataSource, CsvDataSource>(Lifetime.Scoped);
+            builder.Register<IFileLoader, UnityWebRequestFileLoader>(Lifetime.Scoped);
         }
     }
 }

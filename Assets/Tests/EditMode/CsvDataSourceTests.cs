@@ -5,10 +5,10 @@ using Data;
 using NUnit.Framework;
 using NSubstitute;
 
-public class CSVReaderTests
+public class CsvDataSourceTests
 {
     [Test]
-    public async Task LoadCsv_ReturnsParsedData()
+    public async Task GetFileData_ReturnsParsedData()
     {
         var mockLoader = Substitute.For<IFileLoader>();
         mockLoader
@@ -17,23 +17,11 @@ public class CSVReaderTests
                                                  "ValueA,ValueB\n" +
                                                  "ValueC,ValueD"));
 
-        CSVReader.FileLoader = mockLoader;
-
-        List<string[]> result = null;
-        
-        
-        await CSVReader.LoadCsvFile("test.csv", r => result = r);
-
+        var dataSource = new CsvDataSource(mockLoader);
+        List<string[]> result = await dataSource.GetFileData("test.csv");
 
         Assert.AreEqual(2, result.Count);
         Assert.AreEqual("ValueA", result[0][0]);
         Assert.AreEqual("ValueD", result[1][1]);
-    }
-    
-    // Have to delete mock data, because Domain Reloading is disabled in the project
-    [TearDown]
-    public void TearDown()
-    {
-        CSVReader.FileLoader = null;
     }
 }
