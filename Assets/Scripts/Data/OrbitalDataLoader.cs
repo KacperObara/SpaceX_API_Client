@@ -16,11 +16,16 @@ namespace Data
     public class OrbitalDataLoader : IOrbitalDataLoader
     {
         private readonly IOrbitalDataService _dataService;
+        private readonly IDataSource _dataSource;
+        
         private const string CsvFileName = "EarthOrbitalData.csv";
 
-        public OrbitalDataLoader(IOrbitalDataService dataService)
+        public OrbitalDataLoader(
+            IOrbitalDataService dataService, 
+            IDataSource dataSource)
         {
             _dataService = dataService;
+            _dataSource = dataSource;
         }
     
         public async UniTask Load()
@@ -30,13 +35,12 @@ namespace Data
 
         private async UniTask LoadCsv()
         {
-            List<string[]> rows = null;
-            await CSVReader.LoadCsvFile(CsvFileName, result => rows = result);
+            List<string[]> csvData = await _dataSource.GetFileData(CsvFileName);
 
-            List<OrbitalData> dataList = new List<OrbitalData>(rows.Count);
+            List<OrbitalData> dataList = new List<OrbitalData>(csvData.Count);
             CultureInfo culture = CultureInfo.InvariantCulture; // Prevents issues with different decimal separators like , or .
 
-            foreach (var row in rows)
+            foreach (var row in csvData)
             {
                 DateTime time = DateTime.Parse(row[1], culture);
 
