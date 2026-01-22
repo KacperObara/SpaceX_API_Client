@@ -1,10 +1,8 @@
-using UnityEditor;
 using UnityEngine;
 
 namespace Tools
 {
-    [DefaultExecutionOrder(-9900)]
-    public class ScreenUtils : MonoBehaviour
+    public static class ScreenUtils
     {
         public enum AspectRatio
         {
@@ -12,27 +10,19 @@ namespace Tools
             Wide
         }
 
-#if UNITY_EDITOR
-        public static Vector2 GetEditorGameViewSize()
-        {
-            string[] res = UnityStats.screenRes.Split('x');
-            return new Vector2((float) int.Parse(res[0]), (float) int.Parse(res[1]));
-        }
-#endif
-    
+        // Works in both Editor and Build.
         public static AspectRatio GetAspectRatio()
         {
-            float ratio = (float) Screen.height / (float) Screen.width;
+            float width = Screen.width;
+            float height = Screen.height;
 
-#if UNITY_EDITOR
-            var editorGameViewSize = GetEditorGameViewSize();
-            ratio = editorGameViewSize.y / editorGameViewSize.x;
-#endif
-        
-            if (ratio > 1.5f)
-                return AspectRatio.Tall;
-            else
-                return AspectRatio.Wide;
+            if (width <= 0 || height <= 0) return AspectRatio.Wide;
+
+            float ratio = height / width;
+
+            // 1.5f threshold (3:2 is 1.5, 16:9 is 1.77)
+            return ratio > 1.5f ? AspectRatio.Tall : AspectRatio.Wide;
         }
     }
 }
+
