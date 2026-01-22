@@ -13,10 +13,9 @@ namespace Modules.MainMenuModule
         private readonly LaunchesLifetimeScope _launchesPrefab;
 
          public MainMenuState(
-             StateMachine machine,
              IMainMenuPresenter presenter,
              SolarSimulationLifetimeScope simulationPrefab,
-             LaunchesLifetimeScope launchesPrefab) : base(machine)
+             LaunchesLifetimeScope launchesPrefab)
          {
              _presenter = presenter;
              _simulationPrefab = simulationPrefab;
@@ -54,12 +53,14 @@ namespace Modules.MainMenuModule
          
          private async UniTask EnterSolarSimulation()
          {
-             await Machine.Push<SolarSimulationState>(Scope, _simulationPrefab);
+             RequestPush<SolarSimulationState>(_simulationPrefab);
+             await UniTask.CompletedTask;
          }
 
          private async UniTask EnterLaunches()
          {
-             await Machine.Push<LaunchesState>(Scope, _launchesPrefab);
+             RequestPush<LaunchesState>(_launchesPrefab);
+             await UniTask.CompletedTask;
          }
 
          public override void Dispose()

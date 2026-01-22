@@ -2,6 +2,7 @@ using Cysharp.Threading.Tasks;
 using Modules.BootModule;
 using Modules.MainMenuModule;
 using States;
+using UnityEngine;
 
 namespace Modules.RootModule
 {
@@ -11,10 +12,8 @@ namespace Modules.RootModule
         private readonly MainMenuLifetimeScope _menuPrefab;
 
         public RootState(
-            StateMachine machine,
             BootLifetimeScope bootModulePrefab,
             MainMenuLifetimeScope menuModulePrefab)
-            : base(machine)
         {
             _bootPrefab = bootModulePrefab;
             _menuPrefab = menuModulePrefab;
@@ -22,12 +21,14 @@ namespace Modules.RootModule
         
         public override async UniTask Enter()
         {
-            await Machine.Push<BootState>(Scope, _bootPrefab);
+            RequestPush<BootState>(_bootPrefab);
+            await UniTask.CompletedTask;
         }
 
         public override async UniTask OnResume()
         {
-            await Machine.Push<MainMenuState>(Scope, _menuPrefab);
+            RequestPush<MainMenuState>(_menuPrefab);
+            await UniTask.CompletedTask;
         }
     }
 }

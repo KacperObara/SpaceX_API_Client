@@ -10,10 +10,8 @@ namespace Modules.PayloadPopupModule
         private readonly IPayloadPopupPresenter _presenter;
 
         public PayloadPopupState(
-            StateMachine machine, 
             IPayloadPopupPresenter presenter,
             LaunchData data)
-            : base(machine)
         {
             _presenter = presenter;
             _data = data;
@@ -33,7 +31,8 @@ namespace Modules.PayloadPopupModule
     
         private async UniTask OnExitRequested()
         {
-            await Machine.Pop();
+            RequestPop();
+            await UniTask.CompletedTask;
         }
         
         public override void Dispose()

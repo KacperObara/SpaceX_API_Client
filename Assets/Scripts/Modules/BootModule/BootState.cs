@@ -16,11 +16,10 @@ namespace Modules.BootModule
         private readonly LoadingErrorLifetimeScope _loadingErrorPrefab;
         
         public BootState(
-            StateMachine machine,
             LoadingErrorLifetimeScope loadingErrorPrefab,
             IBootView view,
             IOrbitalDataLoader orbital,
-            ILaunchDataLoader launch) : base(machine)
+            ILaunchDataLoader launch)
         {
             _loadingErrorPrefab = loadingErrorPrefab;
             _view = view;
@@ -47,11 +46,11 @@ namespace Modules.BootModule
                 await _orbital.Load();
                 _view.SetProgress(20);
                 await _launch.Load(p => _view.SetProgress(p));
-                await Machine.Pop(); 
+                RequestPop(); 
             }
             catch (Exception)
             {
-                await Machine.Push<LoadingErrorState>(Scope, _loadingErrorPrefab);
+                RequestPush<LoadingErrorState>(_loadingErrorPrefab);
             }
         }
     }
