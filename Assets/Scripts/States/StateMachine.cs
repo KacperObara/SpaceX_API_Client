@@ -8,20 +8,38 @@ using VContainer.Unity;
 
 namespace States
 {
-    public class StateMachine : ITickable
+    // A simple data container to tell the Machine what to do next
+    public enum TransitionType { Push, Pop }
+    
+    public struct StateRequest
+    {
+        public TransitionType Type;
+        public Type StateType;
+        public LifetimeScope Prefab;
+        
+        // extraRegistrations is useful when we want to pass custom data to the child state. See LaunchesState
+        public Action<IContainerBuilder> ExtraRegistrations;
+    }
+    
+    public class StateMachine : ITickable, IDisposable
     {
         private readonly Stack<State> _stack = new();
         
         // Global quit token Triggers when app quits. Useful to stop any loading still in progress,
         // because UniTask is not tied to gameobjects like coroutines
         private CancellationToken _appToken; 
+        
+        public event Action<State> OnStateEntered;
+        public event Action<State> OnStateExited;
 
         // The game entry point
         public async UniTask PushFirst(State state, LifetimeScope scope, CancellationToken appToken)
         {
             _appToken = appToken;
-            state.SetScope(scope);
+            SetupState(state, scope);
             _stack.Push(state);
+            
+            OnStateEntered?.Invoke(state);
             await state.Enter();
         }
         
@@ -33,52 +51,69 @@ namespace States
                 current.Tick();
         }
         
-        // extraRegistrations is useful when we want to pass custom data to the child state. See LaunchesState
-        public async UniTask Push<TState>(
-            LifetimeScope parentScope, 
-            LifetimeScope prefab, 
-            Action<IContainerBuilder> extraRegistrations = null) where TState : State
+        // Give the state references to its scope and token source
+        private void SetupState(State state, LifetimeScope scope)
         {
-            try 
+            state.SetScope(scope);
+            state.OnTransitionRequested += HandleTransitionRequest;
+        }
+
+        // This triggers the token cancellation
+        private void CleanupState(State state)
+        {
+            state.OnTransitionRequested -= HandleTransitionRequest;
+            OnStateExited?.Invoke(state);
+            state.Dispose();
+        }
+        
+        private void HandleTransitionRequest(StateRequest request)
+        {
+            switch (request.Type)
             {
-                if (_stack.TryPeek(out var parent)) 
+                case TransitionType.Push:
+                    Push(request).Forget();
+                    break;
+                case TransitionType.Pop:
+                    Pop().Forget();
+                    break;
+            }
+        }
+        
+        private async UniTaskVoid Push(StateRequest request)
+        {
+            try
+            {
+                if (_stack.TryPeek(out State parent))
                     await parent.OnSuspend();
-                    
+
                 // We create the source here so we can give it to the Container AND the State
                 // Why? When app quits, all states cancel. When this state pops, only this token cancels.
-                var stateCts = CancellationTokenSource.CreateLinkedTokenSource(_appToken);
-
-                if (prefab == null) 
-                    throw new Exception($"Prefab for {typeof(TState).Name} is null!");
-                    
+                CancellationTokenSource stateCts = CancellationTokenSource.CreateLinkedTokenSource(_appToken);
+                
                 // Create a child scope from the prefab
-                var childScope = parentScope.CreateChildFromPrefab(prefab, builder =>
+                var childScope = parent.Scope.CreateChildFromPrefab(request.Prefab, builder =>
                 {
                     // Register the cancellation token so it can be injected into services
-                    builder.RegisterInstance(stateCts.Token); 
-                    
+                    builder.RegisterInstance(stateCts.Token);
                     // This allows us to inject custom data to child states
-                    extraRegistrations?.Invoke(builder); 
+                    request.ExtraRegistrations?.Invoke(builder);
                 });
-                    
-                if (childScope == null || childScope.Container == null)
-                    throw new Exception("VContainer failed to create child scope or container.");
-
+                
                 // Ask VContainer to create the state with all dependencies injected
-                var newState = childScope.Container.Resolve<TState>();
-                    
-                // Give the state references to its scope and token source
-                newState.SetScope(childScope);
+                var newState = (State)childScope.Container.Resolve(request.StateType);
+                
+                SetupState(newState, childScope);
+                
                 // We pass the source we just created so the State can cancel it on Dispose
-                newState.AssignTokenSource(stateCts); 
-            
+                newState.AssignTokenSource(stateCts);
+
                 _stack.Push(newState);
+                OnStateEntered?.Invoke(newState);
                 await newState.Enter();
             }
-            catch (Exception e) 
-            { 
-                Debug.LogError($"[StateMachine] Push<{typeof(TState).Name}> Failed: {e}");
-                throw;
+            catch (Exception e)
+            {
+                Debug.LogError($"[StateMachine] Push Failed: {e}");
             }
         }
         
@@ -89,9 +124,9 @@ namespace States
                 if (_stack.Count <= 1) 
                     return;
 
-                var poppedState = _stack.Pop();
+                State poppedState = _stack.Pop();
                 await poppedState.Exit();
-                poppedState.Dispose(); // This triggers the token cancellation
+                CleanupState(poppedState);
 
                 if (_stack.TryPeek(out var parent))
                     await parent.OnResume();
@@ -102,32 +137,49 @@ namespace States
                 throw;
             }
         }
+        
+        public void Dispose()
+        {
+            while (_stack.Count > 0)
+            {
+                CleanupState(_stack.Pop());
+            }
+        }
     }
     
     public abstract class State : IDisposable
     {
-        protected readonly StateMachine Machine;
-        protected LifetimeScope Scope;
+        public event Action<StateRequest> OnTransitionRequested;
         
+        public LifetimeScope Scope { get; private set; }
         private CancellationTokenSource _cts;
         private bool _disposed;
-        
-        public State(StateMachine machine) => Machine = machine;
 
         public void SetScope(LifetimeScope scope) => Scope = scope;
-        
         public void AssignTokenSource(CancellationTokenSource cts) => _cts = cts;
         
+        protected void RequestPush<T>(LifetimeScope prefab, Action<IContainerBuilder> extra = null) where T : State
+        {
+            OnTransitionRequested?.Invoke(new StateRequest 
+            { 
+                Type = TransitionType.Push, 
+                StateType = typeof(T), 
+                Prefab = prefab, 
+                ExtraRegistrations = extra 
+            });
+        }
+        
+        protected void RequestPop() 
+        {
+            OnTransitionRequested?.Invoke(new StateRequest { Type = TransitionType.Pop });
+        }
+        
         public virtual UniTask Enter() => UniTask.CompletedTask;
-    
         // Called before child is pushed
         public virtual UniTask OnSuspend() => UniTask.CompletedTask;
-
         // Called after a child is popped
         public virtual UniTask OnResume() => UniTask.CompletedTask;
-        
         public virtual UniTask Exit() => UniTask.CompletedTask;
-
         public virtual void Tick() { }
         
         public virtual void Dispose()

@@ -12,9 +12,8 @@ namespace Modules.LaunchesModule
         private readonly PayloadPopupLifetimeScope _popupPrefab;
         
         public LaunchesState(
-            StateMachine machine,
             ILaunchesPresenter presenter,
-            PayloadPopupLifetimeScope popupPrefab) : base(machine)
+            PayloadPopupLifetimeScope popupPrefab)
         {
             _presenter = presenter;
             _popupPrefab = popupPrefab;
@@ -36,15 +35,17 @@ namespace Modules.LaunchesModule
         
         private async UniTask OnPopupRequested(LaunchData data)
         {
-            await Machine.Push<PayloadPopupState>(Scope, _popupPrefab, builder =>
+            RequestPush<PayloadPopupState>(_popupPrefab, builder =>
             {
                 builder.RegisterInstance(data);
             });
+            await UniTask.CompletedTask;
         }
         
         private async UniTask OnExitRequested()
         {
-            await Machine.Pop();
+            RequestPop();
+            await UniTask.CompletedTask;
         }
         
         public override void Dispose()

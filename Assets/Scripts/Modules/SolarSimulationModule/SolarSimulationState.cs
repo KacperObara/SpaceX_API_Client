@@ -10,11 +10,10 @@ namespace Modules.SolarSimulationModule
         private readonly SolarSimulator _simulator;
         private readonly CameraControls _cameraControls;
         
-        public SolarSimulationState(StateMachine machine, 
+        public SolarSimulationState( 
             ISolarSimulationPresenter presenter,
             SolarSimulator simulator,        
             CameraControls cameraControls) 
-            : base(machine)
         {
             _presenter = presenter;
             _simulator = simulator;
@@ -41,7 +40,8 @@ namespace Modules.SolarSimulationModule
         
         private async UniTask OnExitRequested()
         {
-            await Machine.Pop();
+            RequestPop();
+            await UniTask.CompletedTask;
         }
         
         public override void Dispose()

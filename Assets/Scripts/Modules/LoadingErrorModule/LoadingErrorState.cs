@@ -7,9 +7,7 @@ namespace Modules.LoadingErrorModule
     {
         private readonly ILoadingErrorView _view;
         
-        public LoadingErrorState(
-            StateMachine machine, 
-            ILoadingErrorView view) : base(machine)
+        public LoadingErrorState(ILoadingErrorView view)
         {
             _view = view;
         }
@@ -22,7 +20,8 @@ namespace Modules.LoadingErrorModule
 
         private async UniTask OnRetry()
         {
-            await Machine.Pop();
+            RequestPop();
+            await UniTask.CompletedTask;
         }
 
         public override async UniTask Exit()
